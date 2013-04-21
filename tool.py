@@ -3,6 +3,7 @@
 import subprocess
 import sys
 import hashlib
+import sqlite3
 
 def ipc_shell(shell_command):
 	try:
@@ -26,15 +27,43 @@ def hashfile():
 	digest = (md5.hexdigest(), sha1.hexdigest()) #make immutable
 	return digest;
 
-def file_list():
+def new_db(db_name):
+	db_info[db_connect] = sqlite3.connect(db_name+".db")
+	db_info[db_pointer] = db_info[db_connect].cursor()
+	db_info[db_pointer].execute("""CREATE TABLE files(name text, inode text, file_number text)""")
+	return db_info;
+
+def open_db(db_name):
+	db_info[db_connect] = sqlite3.connect(db_name+".db")
+	db_info[db_pointer] = db_connect.cursor()
+	return db_info;
+
+def query_row_db(db_info, db_row):
+	for row in db_info[db_pointer].execute("SELECT rowid, * FROM files ORDER BY"+db_row+"):
+		print row
+	return;
+
+def query_db(db_info, string):
+	db_query = "SELECT * FROM files WHERE name LIKE %"+string+"%"
+	db_info[db_pointer].execute(db_query)
+	print db_info[db_pointer].fetchall()
+	return;
+
+#def file_list(db_info)
+def insert_file_list():
 	fls = "fls -prlo 32 "+sys.argv[1]
 	file_dictionary = {}
 	file_list = ipc_shell(fls)
+	iteration = 0
 	for single_file in file_list:
+		iteration++
 		single_file = single_file.split()
 		if single_file[0] == 'r/r':
 			if single_file[1] == "*":
 				file_dictionary[single_file[3]] = single_file[2]
+				#file_info = [(single_file[3], single_file[3], iteration)]
+				#db_info[db_pointer].executemany("INSERT INTO files VALUES (?,?,?)", file_info)
+				#db_info[db_connect].commit()
 			else:
 				file_dictionary[single_file[2]] = single_file[1]
 	return file_dictionary;
@@ -50,7 +79,7 @@ def main():
 	image_details = ipc_shell(fdisk)
 	print image_details[9]
 
-	files = file_list()
+	files = insert_file_list()
 	for single_file in files:
 		print single_file, files[single_file]
 
