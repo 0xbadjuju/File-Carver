@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+import re
 import hashlib
 import sqlite3
 
@@ -27,73 +28,96 @@ def hashfile():
 	digest = (md5.hexdigest(), sha1.hexdigest()) #make immutable
 	return digest;
 
+def carve_file(db_info, string):
+	#icat = icat -o 32 image offset + " > " + output
+	db_query = "SELECT * FROM files WHERE name LIKE %"+string+"%"
+	db_info["db_cursor"].execute(db_query)
+	carve = db_info["db_cursor"].fetchone()
+	icat = "icat -o 32 "+sys.argv[1]+" "+carve[1]+" > "+carve[2]
+	ipc_shell(icat)
+	return;
+
+def carve_partition():
+	dd = "if="+sys.argv[1]+" of="
+	return;
+
 def new_db(db_name):
-	db_info[db_connect] = sqlite3.connect(db_name+".db")
-	db_info[db_pointer] = db_info[db_connect].cursor()
-	db_info[db_pointer].execute("""CREATE TABLE files(name text, inode text, file_number text)""")
+	db_info = {"db_connect":"","db_cursor":""}
+	db_info["db_connect"] = sqlite3.connect(db_name+".db")
+	db_info["db_cursor"] = db_info["db_connect"].cursor()
+	db_info["db_cursor"].execute("""CREATE TABLE files(name text, inode text, file_number text)""")
 	return db_info;
 
-def open_db(db_name):
-	db_info[db_connect] = sqlite3.connect(db_name+".db")
-	db_info[db_pointer] = db_connect.cursor()
+def open_db():
+	db_name = raw_input("Database Name? ")
+	db_info = {"db_connect":"","db_cursor":""}
+	db_info["db_connect"] = sqlite3.connect(db_name+".db")
+	db_info["db_cursor"] = db_info["db_connect"].cursor()
 	return db_info;
 
-def query_row_db(db_info, db_row):
-	for row in db_info[db_pointer].execute("SELECT rowid, * FROM files ORDER BY"+db_row+"):
-		print row
+def query_row_db(db_info, db_row):  
+    	db_info["db_cursor"].execute("SELECT * FROM files")
+	while True:
+		file = db_info["db_cursor"].fetchone()
+		if file == None:
+           		break
+		print "%3s %-30s %5s" % (file[2], file[0], file[1])
 	return;
 
 def query_db(db_info, string):
-	db_query = "SELECT * FROM files WHERE name LIKE %"+string+"%"
-	db_info[db_pointer].execute(db_query)
-	print db_info[db_pointer].fetchall()
+	db_query = "SELECT * FROM files WHERE name LIKE ?"
+	db_info["db_cursor"].execute(db_query, ('%'+string+'%',))
+	while True:
+		file = db_info["db_cursor"].fetchone()
+		if file == None:
+           		break
+		print "%3s %-30s %5s" % (file[2], file[0], file[1])
 	return;
 
-#def file_list(db_info)
-def insert_file_list():
+def insert_file_list(db_info):
 	fls = "fls -prlo 32 "+sys.argv[1]
-	file_dictionary = {}
 	file_list = ipc_shell(fls)
 	iteration = 0
 	for single_file in file_list:
-		iteration++
 		single_file = single_file.split()
 		if single_file[0] == 'r/r':
+			iteration+=1
 			if single_file[1] == "*":
-				file_dictionary[single_file[3]] = single_file[2]
-				#file_info = [(single_file[3], single_file[3], iteration)]
-				#db_info[db_pointer].executemany("INSERT INTO files VALUES (?,?,?)", file_info)
-				#db_info[db_connect].commit()
+				file_info = [(single_file[3], single_file[2], iteration)]
 			else:
-				file_dictionary[single_file[2]] = single_file[1]
-	return file_dictionary;
+				file_info = [(single_file[2], single_file[1], iteration)]
+			db_info["db_cursor"].executemany("INSERT INTO files VALUES (?,?,?)", file_info)
+			db_info["db_connect"].commit()
+	return;
 
 def main():
-
-	original_digest = hashfile()
-
 	fdisk 	= "fdisk -l "+sys.argv[1]
-	icat	= "icat -o 32 "+sys.argv[1]
-	dd	= "if="+sys.argv[1]+" of="
+	#original_digest = hashfile()
+	
+	while True:
+		choice = raw_input("New or Existing Database? ")
+		if re.match('^new$', choice, re.IGNORECASE):
+			db_info = new_db("test")
+			break
+		elif re.match('^old$', choice, re.IGNORECASE):
+			db_info = open_db()
+			break
+		else:
+			print "Bad Input"
 
 	image_details = ipc_shell(fdisk)
-	print image_details[9]
 
-	files = insert_file_list()
-	for single_file in files:
-		print single_file, files[single_file]
+	insert_file_list(db_info)
 
-	#icat = icat + file offset + " < " + output file
-	#carve = ipc_shell(icat)
+	query_row_db(db_info, "name")
+
+	query_db(db_info, "NIKON")
 	
-	#dd = dd+output_name+" skip="+file_location
-	#duplicate = ipc_shell(dd)
-	
-	final_digest = hashfile()
-	if original_digest != final_digest:
-		print "\n\n\n Warning File Altered \n\n\n"
-	else:
-		print "File Unaltered"
+	#final_digest = hashfile()
+	#if original_digest != final_digest:
+	#	print "\n\n\n Warning File Altered \n\n\n"
+	#else:
+	#	print "File Unaltered"
 	return;
 
 if __name__ == "__main__":
