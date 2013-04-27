@@ -30,7 +30,6 @@ def main_menu(image):
 					break
 				else:
 					print "Bad Input"
-			print "Database Populated"
 		elif re.match('^Print|2$', choice, re.IGNORECASE):
 			carver_files.query_files_table_db(db_info)
 			carver_partitions.query_partitions_table_db(db_info)

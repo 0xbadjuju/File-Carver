@@ -1,6 +1,7 @@
 import subprocess
 import sqlite3
 import hashlib
+import os
 
 def get_partition_offset(image):
 	ipc_shell("fdisk -l "+image)
@@ -28,18 +29,21 @@ def hashfile(image):
 	return digest;
 
 def new_db(db_name):
-	db_info = {"db_connect":"","db_cursor":""}
-	db_info["db_connect"] = sqlite3.connect(db_name+".db")
-	db_info["db_cursor"] = db_info["db_connect"].cursor()
-	try:
+	if os.path.exists(db_name):
+		print "File Exists"
+	else:
+		db_info = {"db_connect":"","db_cursor":""}
+		db_info["db_connect"] = sqlite3.connect(db_name+".db")
+ 		db_info["db_cursor"] = db_info["db_connect"].cursor()
 		db_info["db_cursor"].execute("""CREATE TABLE files(name text, inode int, file_number int)""")
 		db_info["db_cursor"].execute("""CREATE TABLE partitions(name text, boot text, start int, end int, blocks int, id int, system text)""")
-	except OSError as error:
-		print "Table Exists"
 	return db_info;
 
 def open_db(db_name):
 	db_info = {"db_connect":"","db_cursor":""}
-	db_info["db_connect"] = sqlite3.connect(db_name+".db")
-	db_info["db_cursor"] = db_info["db_connect"].cursor()
+	if os.path.exists(db_name): 
+		db_info["db_connect"] = sqlite3.connect(db_name+".db")
+		db_info["db_cursor"] = db_info["db_connect"].cursor()
+	else:
+		print "No Such File"
 	return db_info;
