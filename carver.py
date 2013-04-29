@@ -22,8 +22,7 @@ def main_menu(image):
 				choice = raw_input("New or Existing Database? ")
 				if re.match('^new|1$', choice, re.IGNORECASE):
 					db_info = carver_common.new_db(raw_input("Database Name? "))
-					carver_files.insert_file_list_db(db_info,image)
-					carver_partitions.insert_partition_list_db(db_info,image)
+					carver_common.insert_list_db(db_info,image)
 					break
 				elif re.match('^old|existing|2$', choice, re.IGNORECASE):
 					db_info = carver_common.open_db(raw_input("Database Name? "))

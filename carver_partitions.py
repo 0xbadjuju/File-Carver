@@ -22,16 +22,6 @@ def print_partition_query_db(db_info):
 		print "%10s %10s %10s" % (file[0], file[2], file[3])	
 	return;
 
-def insert_partition_list_db(db_info, image):
-	partitions = carver_common.ipc_shell("fdisk -l "+image)
-	partitions = partitions[9:]
-	for line in partitions:
-		line = line.split()
-		partition_info = [(line[0], line[1], line[2], line[3], line[4], line[5], line[6])]
-		db_info["db_cursor"].executemany("INSERT INTO partitions VALUES (?,?,?,?,?,?,?)", partition_info)
-		db_info["db_connect"].commit()
-	return;
-
 def carve_partition(db_info, image, string):
 	db_info["db_cursor"].execute("SELECT * FROM partitions")
 	db_query = "SELECT * FROM partitions WHERE name LIKE ?"
