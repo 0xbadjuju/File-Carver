@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ################################################################################
-# 
+# Alexander Leary, Scott Fenwick, Melissa Parker
 # April 2013
 #
 # Main file for carving program
@@ -114,8 +114,11 @@ def main_menu(image):
 # altered in any way.
 ################################################################################
 def main():
-	image = sys.argv[1]
-
+	
+	if len(sys.argv) != 1:
+		image = sys.argv[1]
+	else:
+		image = raw_input("\nImage Name? ")
 	original_digest = carver_common.hashfile(image)
 
 	main_menu(image)
