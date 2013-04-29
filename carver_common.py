@@ -4,18 +4,25 @@ import hashlib
 import os
 import re
 
-def get_partition_offset(image):
-	ipc_shell("fdisk -l "+image)
-
+################################################################################
+# Function:	 ipc_shell(shell_command)
+# Variables: shell_command, std_out, std_err, error  
+# Passes commands to a shell to be processed
+################################################################################
 def ipc_shell(shell_command):
 	try:
 		sub_process = subprocess.Popen( shell_command, shell=True, stdout=subprocess.PIPE )
 		(std_out, std_err) = sub_process.communicate()
 	except OSError as error:
-		print "Command Failed:", error
+		print "Command Failed:", error, " ", std_err
 	std_out = std_out.splitlines()
 	return std_out;
 
+################################################################################
+# Function:	 hashfile(image)
+# Variables: image, md5, sha1, file_to_hash, digest
+# Hashes a file using md5 and sha1 and returns the hashes in a tuple
+################################################################################
 def hashfile(image):
 	md5 = hashlib.md5()
 	sha1 = hashlib.sha1()
@@ -29,6 +36,11 @@ def hashfile(image):
 	digest = (md5.hexdigest(), sha1.hexdigest()) #make immutable
 	return digest;
 
+################################################################################
+# Function:	 new_db(db_name)
+# Variables: db_info  
+# Creates a new database with 2 tables, file and partitions
+################################################################################
 def new_db(db_name):
 	if os.path.exists(db_name):
 		print "File Exists"
@@ -40,6 +52,11 @@ def new_db(db_name):
 		db_info["db_cursor"].execute("""CREATE TABLE partitions(name text, boot text, start int, end int, blocks int, id int, system text)""")
 	return db_info;
 
+################################################################################
+# Function:	 open_db(db_name)
+# Variables: db_info  
+# Opens an existing database for use
+################################################################################
 def open_db(db_name):
 	db_info = {"db_connect":"","db_cursor":""}
 	if os.path.exists(db_name): 
@@ -49,6 +66,11 @@ def open_db(db_name):
 		print "No Such File"
 	return db_info;
 
+################################################################################
+# Function:	 insert_list_db(db_info, image)
+# Variables: db_info , image, line, partition_info 
+# Populates the database with partition information
+################################################################################
 def insert_list_db(db_info, image):
 	partitions = ipc_shell("fdisk -l "+image)
 	partitions = partitions[9:]
@@ -60,6 +82,11 @@ def insert_list_db(db_info, image):
 		insert_file_list_db(db_info,image,line[2])
 	return;
 
+################################################################################
+# Function:	 query_partitions_table_db(db_info)
+# Variables: db_info, image, offset, single_file, file_info
+# Populates the database with file information
+################################################################################
 def insert_file_list_db(db_info, image, offset):
 	iteration = 0
 	sub_process = subprocess.Popen( "fls -prlo "+offset+" "+image, shell=True, stdout=subprocess.PIPE )

@@ -1,5 +1,14 @@
 #!/usr/bin/python
 
+################################################################################
+# 
+# April 2013
+#
+# Main file for carving program
+# Requires carver_files and carver_partitions carving actions
+# All three files require carver_common for database related tasks
+################################################################################
+
 import sys
 import re
 
@@ -7,6 +16,11 @@ import carver_files
 import carver_partitions
 import carver_common
 
+################################################################################
+# Function:	 main_menu(image)
+# Variables: image, choice, type, string, slice, start, stop  
+# Launches all program functions by looping through and getting user input
+################################################################################
 def main_menu(image):
 	while True:
 		choice = raw_input("\
@@ -91,12 +105,16 @@ def main_menu(image):
 		elif re.match('^Exit|6$', choice, re.IGNORECASE):
 			break
 		else:
-			print "Bad Input"	
-
+			print "Bad Input"
+			
+################################################################################
+# Function:	 main()
+# Variables: image, original_digest, final_digest
+# Hashes original file, opens the main menu, the checks the file hasn't been
+# altered in any way.
+################################################################################
 def main():
 	image = sys.argv[1]
-
-	carver_common.get_partition_offset(image)
 
 	original_digest = carver_common.hashfile(image)
 
