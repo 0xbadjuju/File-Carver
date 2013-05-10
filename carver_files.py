@@ -53,26 +53,37 @@ def query_file_number_db(db_info, string):
 # Common function for printing file information from the database
 ################################################################################
 def print_file_query_db(db_info):
-	print "\n%-10s %-30s %5s" % ("Index", "File Name", "Inode")
+	print "\n%-10s %-30s %5s" % ("Index", "File Name", "Location")
 	while True:
 		file = db_info["db_cursor"].fetchone()
 		if file == None:
            		break
 		print "%-10s %-30s %5s" % (file[2], file[0], file[1])
+	print "\n"
 	return;
 
 ################################################################################
 # Function:	 carve_file(db_info, image, string)
 # Variables: db_info, image, string, out_file, icat
-# Carves a single file from the image file to the cwd using the same name
+# Carves files from the image file a folder within the current working directory
 ################################################################################
 def carve_file(db_info, image, string):
 	#icat = icat -o 32 image offset + " > " + output
 	db_query = "SELECT * FROM files WHERE name LIKE ?"
 	db_info["db_cursor"].execute(db_query,('%'+string+'%',))
-	carve = db_info["db_cursor"].fetchone()
-	out_file = re.sub('.*/','',carve[0])
-	icat = "icat -o "+str(carve[3])+" "+image+" "+str(carve[1])+" > "+out_file
-	carver_common.ipc_shell(icat)
-	print "File duplicated to "+os.getcwd()+"/"+out_file
+	new_directory = image+"_"+string+"_"+str(carver_common.get_time(image))
+	carver_common.make_directory(new_directory, image)
+	while True:
+		carve = db_info["db_cursor"].fetchone()
+		if carve != None:
+			if re.match('.*/', carve[0]):
+				out_file = re.sub('.*/','',carve[0])
+			else:
+				out_file = carve[0]
+			icat = "icat -o "+str(carve[3])+" "+image+" "+str(carve[1])+" > "+new_directory+"/"+out_file
+			carver_common.ipc_shell(icat)
+			print "File duplicated to "+os.getcwd()+"/"+new_directory+"/"+out_file
+		else:
+			break
+	print "\n"
 	return;

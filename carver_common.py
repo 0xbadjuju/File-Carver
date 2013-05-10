@@ -1,4 +1,5 @@
 import subprocess
+import datetime
 import sqlite3
 import hashlib
 import os
@@ -59,11 +60,11 @@ def new_db(db_name):
 ################################################################################
 def open_db(db_name):
 	db_info = {"db_connect":"","db_cursor":""}
-	if os.path.exists(db_name): 
+	if os.path.exists(db_name+".db"): 
 		db_info["db_connect"] = sqlite3.connect(db_name+".db")
 		db_info["db_cursor"] = db_info["db_connect"].cursor()
 	else:
-		print "No Such File"
+		print "No Such File\n"
 	return db_info;
 
 ################################################################################
@@ -107,3 +108,25 @@ def insert_file_list_db(db_info, image, offset):
 		else:
 			break
 	return;
+
+################################################################################
+# Function:	 make_directory(path)
+# Variables: path
+# Creates folders for file output
+################################################################################
+def make_directory(path, image):
+	if not os.path.exists(path):
+		try:
+			os.makedirs(path)
+		except OSError:
+			pass
+
+################################################################################
+# Function:	 get_time(image)
+# Variables: image, time, folder
+# Returns the current time in YYYYMMDDHHMM format, intended for foldernames
+################################################################################
+def get_time(image):
+	time = datetime.datetime.now()
+	folder = str(time.year) + str(time.month) + str(time.day) + str(time.hour) + str(time.minute)
+	return folder;

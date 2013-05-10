@@ -29,12 +29,13 @@ def query_partition_name_db(db_info, string):
 # Common function for printing partition information from the database
 ################################################################################
 def print_partition_query_db(db_info):
-	print "\n%-10s %-10s %-10s" % ('Name', 'Start', 'Stop')
+	print "\n%-10s %-10s %-10s" % ('Partition', 'Start', 'Stop')
 	while True:
 		partition = db_info["db_cursor"].fetchone()
 		if partition == None:
            		break
 		print "%-10s %-10s %-10s" % (partition[0], partition[2], partition[3])	
+	print "\n"
 	return;
 
 ################################################################################
