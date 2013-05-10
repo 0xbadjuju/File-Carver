@@ -138,7 +138,7 @@ def main():
 			print "\n\n\n Warning File Altered \n\n\n"
 		else:
 			print "File Unaltered"
-		return;
+	return;
 
 if __name__ == "__main__":
 	main()

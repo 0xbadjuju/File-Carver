@@ -73,6 +73,7 @@ def carve_file(db_info, image, string):
 	db_info["db_cursor"].execute(db_query,('%'+string+'%',))
 	new_directory = image+"_"+string+"_"+str(carver_common.get_time(image))
 	carver_common.make_directory(new_directory, image)
+	log = open(os.getcwd()+"/"+new_directory+"/log","a")
 	while True:
 		carve = db_info["db_cursor"].fetchone()
 		if carve != None:
@@ -82,8 +83,16 @@ def carve_file(db_info, image, string):
 				out_file = carve[0]
 			icat = "icat -o "+str(carve[3])+" "+image+" "+str(carve[1])+" > "+new_directory+"/"+out_file
 			carver_common.ipc_shell(icat)
+			hash = carver_common.hashfile(new_directory+"/"+out_file)
 			print "File duplicated to "+os.getcwd()+"/"+new_directory+"/"+out_file
+			print "\t MD5:  "+hash[0]
+			print "\t SHA1: "+hash[1]+"\n"
+			try:
+				log.write(out_file+"\n\tMD5:  "+hash[0]+"\n\tSHA1: "+hash[1])
+			except OSError:
+				pass
 		else:
 			break
+	log.close()
 	print "\n"
 	return;
