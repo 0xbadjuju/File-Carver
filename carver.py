@@ -26,7 +26,7 @@ def main_menu(image):
 	while True:
 		choice = raw_input("\
 		\n\
-		1. Open Database \n\
+		1. Select Database \n\
 		2. Print Database Contents \n\
 		3. Search Files Database \n\
 		4. Carve File \n\

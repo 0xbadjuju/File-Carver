@@ -53,12 +53,12 @@ def query_file_number_db(db_info, string):
 # Common function for printing file information from the database
 ################################################################################
 def print_file_query_db(db_info):
-	print "\n%-10s %-30s %5s" % ("Index", "File Name", "Location")
+	print "\n%-10s %-30s %10s %10s" % ("Index", "File Name", "Location", "Size")
 	while True:
 		file = db_info["db_cursor"].fetchone()
 		if file == None:
            		break
-		print "%-10s %-30s %5s" % (file[2], file[0], file[1])
+		print "%-10s %-30s %10s %10s" % (file[2], file[0], file[1], file[4])
 	print "\n"
 	return;
 
@@ -72,7 +72,7 @@ def carve_file(db_info, image, string):
 	db_query = "SELECT * FROM files WHERE name LIKE ?"
 	db_info["db_cursor"].execute(db_query,('%'+string+'%',))
 	new_directory = image+"_"+string+"_"+str(carver_common.get_time(image))
-	carver_common.make_directory(new_directory, image)
+	carver_common.make_directory(new_directory)
 	log = open(os.getcwd()+"/"+new_directory+"/log","a")
 	while True:
 		carve = db_info["db_cursor"].fetchone()
@@ -83,7 +83,7 @@ def carve_file(db_info, image, string):
 				out_file = carve[0]
 			icat = "icat -o "+str(carve[3])+" "+image+" "+str(carve[1])+" > "+new_directory+"/"+out_file
 			carver_common.ipc_shell(icat)
-			hash = carver_common.hashfile(new_directory+"/"+out_file)
+			hash = carver_common.hash_file(new_directory+"/"+out_file)
 			print "File duplicated to "+os.getcwd()+"/"+new_directory+"/"+out_file
 			print "\t MD5:  "+hash[0]
 			print "\t SHA1: "+hash[1]+"\n"
