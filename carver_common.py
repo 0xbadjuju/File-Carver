@@ -24,7 +24,7 @@ def ipc_shell(shell_command):
 # Variables: image, md5, sha1, file_to_hash, digest
 # Hashes a file using md5 and sha1 and returns the hashes in a tuple
 ################################################################################
-def hashfile(image):
+def hash_file(image):
 	md5 = hashlib.md5()
 	sha1 = hashlib.sha1()
 	file_to_hash = open(image, "rb")
@@ -38,6 +38,36 @@ def hashfile(image):
 	return digest;
 
 ################################################################################
+# Function:	 hashfile(db_info, image,name, location, size)
+# Variables: image, location, size, md5, sha1, file_to_hash, digest, name
+# Hashes a file in an image using md5 and sha1 and returns the hashes in a tuple
+################################################################################
+def hash_file_in_image(db_info, image, name, location, size):
+	md5 = hashlib.md5()
+	sha1 = hashlib.sha1()
+	name_alt = re.sub(".*/","",name)
+	fh = open(name_alt, "wb")
+	file_to_hash = open(os.getcwd()+"/"+image, "rb")
+	file_to_hash.seek(location)
+	while size > 0:
+
+		#try manual carving to get the file correct
+		if size > 128:
+			file_chunk = file_to_hash.read(128)
+			size = size - 128
+		else:
+			file_chunk = file_to_hash.read(size)
+			size = 0
+		md5.update(file_chunk)
+		sha1.update(file_chunk)
+		fh.write(file_chunk)
+	digest = [(name, md5.hexdigest(), sha1.hexdigest())]
+	db_info["db_cursor"].executemany("INSERT INTO hashes VALUES (?,?,?)", digest)
+	db_info["db_connect"].commit()
+	print digest
+	return;
+
+################################################################################
 # Function:	 new_db(db_name)
 # Variables: db_info  
 # Creates a new database with 2 tables, file and partitions
@@ -49,7 +79,8 @@ def new_db(db_name):
 		db_info = {"db_connect":"","db_cursor":""}
 		db_info["db_connect"] = sqlite3.connect(db_name+".db")
  		db_info["db_cursor"] = db_info["db_connect"].cursor()
-		db_info["db_cursor"].execute("""CREATE TABLE files(name text, inode int, file_number int, offset int)""")
+		db_info["db_cursor"].execute("""CREATE TABLE hashes(name text, MD5 text, SHA1 text)""")
+		db_info["db_cursor"].execute("""CREATE TABLE files(name text, inode int, file_number int, offset int, size int)""")
 		db_info["db_cursor"].execute("""CREATE TABLE partitions(name text, boot text, start int, end int, blocks int, id int, system text)""")
 	return db_info;
 
@@ -80,7 +111,11 @@ def insert_list_db(db_info, image):
 		partition_info = [(line[0], line[1], line[2], line[3], line[4], line[5], line[6])]
 		db_info["db_cursor"].executemany("INSERT INTO partitions VALUES (?,?,?,?,?,?,?)", partition_info)
 		db_info["db_connect"].commit()
-		insert_file_list_db(db_info,image,line[2])
+		if line[1] == "*":
+			shift = 1
+		else:
+			shift = 0 
+		insert_file_list_db(db_info,image,line[1+shift])
 	return;
 
 ################################################################################
@@ -98,12 +133,18 @@ def insert_file_list_db(db_info, image, offset):
 			if single_file[0] == 'r/r':
 				iteration+=1
 				if single_file[1] == "*":
-					single_file[2] = re.sub(":", "",single_file[2])
-					file_info = [(single_file[3], single_file[2], iteration, offset)]
+					shift = 0
+
 				else:
-					single_file[1] = re.sub(":", "",single_file[1])
-					file_info = [(single_file[2], single_file[1], iteration, offset)]
-				db_info["db_cursor"].executemany("INSERT INTO files VALUES (?,?,?,?)", file_info)
+					shift = 1
+
+				single_file[2-shift] = re.sub(":", "",single_file[2-shift])
+				location = single_file[2-shift]
+				name = single_file[3-shift]
+				size = single_file[16-shift]
+
+				file_info = [(name, location, iteration, offset, size)]
+				db_info["db_cursor"].executemany("INSERT INTO files VALUES (?,?,?,?,?)", file_info)
 				db_info["db_connect"].commit()
 		else:
 			break
@@ -114,12 +155,13 @@ def insert_file_list_db(db_info, image, offset):
 # Variables: path
 # Creates folders for file output
 ################################################################################
-def make_directory(path, image):
+def make_directory(path):
 	if not os.path.exists(path):
 		try:
 			os.makedirs(path)
 		except OSError:
 			pass
+	return;
 
 ################################################################################
 # Function:	 get_time(image)
