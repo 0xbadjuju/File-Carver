@@ -26,7 +26,7 @@ def main_menu(image):
 	while True:
 		choice = raw_input("\
 		\n\
-		1. Select Database \n\
+		1. Open Database \n\
 		2. Print Database Contents \n\
 		3. Search Files Database \n\
 		4. Carve File \n\
@@ -129,11 +129,11 @@ def main():
 		image = raw_input("\nImage Name? ")
 
 	if not passed_arguments.nohash:
-		original_digest = carver_common.hashfile(image)
+		original_digest = carver_common.hash_file(image)
 
 	main_menu(image)
 	if not passed_arguments.nohash:
-		final_digest = carver_common.hashfile(image)
+		final_digest = carver_common.hash_file(image)
 		if original_digest != final_digest:
 			print "\n\n\n Warning File Altered \n\n\n"
 		else:

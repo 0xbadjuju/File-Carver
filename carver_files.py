@@ -23,7 +23,7 @@ def query_name_db(db_info, string):
 	db_query = "SELECT * FROM files WHERE name LIKE ?"
 	db_info["db_cursor"].execute(db_query, ('%'+string+'%',))
 	print_file_query_db(db_info)
-	return;
+	return db_info;
 
 ################################################################################
 # Function:	 query_inode_db(db_info, string)

@@ -75,12 +75,13 @@ class GUI(wx.Frame):
 		self.overview = wx.ListCtrl(panel, style=wx.LC_REPORT)
 		self.overview.InsertColumn(0,'No.',width=35)
 		self.overview.InsertColumn(1,'Name',width=263)
-		
 		grid.Add(self.overview, pos=(1, 0), flag=wx.LEFT|wx.EXPAND, border=10)
 
 		self.selection = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.LC_NO_HEADER)
+		self.selection.InsertColumn(0,'Field')
+		self.selection.InsertColumn(1,'Data')
 		grid.Add(self.selection, pos=(1, 1), flag=wx.RIGHT|wx.EXPAND, border=10)
-
+		
 		grid.AddGrowableRow(1)
 
 		self.details = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.LC_NO_HEADER)
@@ -111,7 +112,6 @@ class GUI(wx.Frame):
 			index = self.overview.InsertStringItem(sys.maxint, str(file[2]))
 			self.overview.SetStringItem(index,1,file[0])
 			index += 1
-		print "\n"
 		return;
 
 	def OnQuit(self, e):
@@ -147,10 +147,17 @@ class GUI(wx.Frame):
 
 	def GetDetails(self, e):
 		index = e.m_itemIndex
-		file = self.overview.GetItemData(index)
-		print file
-		print index
-		carver_files.query_name_db(self.db_info, file)
+		file = self.overview.GetItem(index, 1).GetText()
+		db_query = "SELECT * FROM files WHERE name LIKE ?"
+		self.db_info["db_cursor"].execute(db_query, ('%'+file+'%',))
+		self.selection.DeleteAllItems()
+		file = self.db_info["db_cursor"].fetchone()
+		index = self.selection.InsertStringItem(sys.maxint, "Inode:")
+		self.selection.SetStringItem(index,1,str(file[1]))
+		index = self.selection.InsertStringItem(sys.maxint, "Disk Offset: ")
+		self.selection.SetStringItem(index,1,str(file[3]))
+		index = self.selection.InsertStringItem(sys.maxint, "File Size: ")
+		self.selection.SetStringItem(index,1,str(file[4]/1024.0))
 
 def main():
 
