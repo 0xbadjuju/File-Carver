@@ -75,6 +75,7 @@ def hash_file_in_image(db_info, image, name, location, size):
 def new_db(db_name):
 	if os.path.exists(db_name):
 		print "File Exists"
+		return;
 	else:
 		db_info = {"db_connect":"","db_cursor":""}
 		db_info["db_connect"] = sqlite3.connect(db_name+".db")
@@ -108,14 +109,16 @@ def insert_list_db(db_info, image):
 	partitions = partitions[9:]
 	for line in partitions:
 		line = line.split()
-		partition_info = [(line[0], line[1], line[2], line[3], line[4], line[5], line[6])]
+		if line[1] == "*":
+			partition_info = [(line[0], line[1], line[2], line[3], line[4], line[5], line[6])]
+			offset = line[2]
+		else:
+			offset = line[1]
+			partition_info = [(line[0], "-", line[1], line[2], line[3], line[4], line[5])]
+
 		db_info["db_cursor"].executemany("INSERT INTO partitions VALUES (?,?,?,?,?,?,?)", partition_info)
 		db_info["db_connect"].commit()
-		if line[1] == "*":
-			shift = 1
-		else:
-			shift = 0 
-		insert_file_list_db(db_info,image,line[1+shift])
+		insert_file_list_db(db_info,image,offset)
 	return;
 
 ################################################################################
