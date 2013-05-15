@@ -164,7 +164,7 @@ class GUI(wx.Frame):
 		index = self.selection.InsertStringItem(sys.maxint, "Disk Offset: ")
 		self.selection.SetStringItem(index,1,str(file[3]))
 		index = self.selection.InsertStringItem(sys.maxint, "File Size: ")
-		self.selection.SetStringItem(index,1,str(file[4]/1024.0))
+		self.selection.SetStringItem(index,1,str(round(file[4]/1024.0,2))+" KB")
 
 	def CarveFiles(self, e):
 		db_query = "SELECT * FROM files WHERE name LIKE ?"
