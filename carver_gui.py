@@ -1,6 +1,8 @@
 import wx
 import re
+import os
 import sys
+import wx.lib.mixins.listctrl as listctrl_mixin
 
 import carver_common
 import carver_files
@@ -24,6 +26,8 @@ class GUI(wx.Frame):
 		self.SetTitle('CarveIT')
 		self.Centre()
 		self.Show(True)
+		
+		self.image = "demo.dd"
         
 	def InitUI(self):
 
@@ -54,6 +58,8 @@ class GUI(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.OverviewSetup, id=ID_MENU_OPEN)
 		self.Bind(wx.EVT_MENU, self.OnQuit, quit_menu_item)
 
+		self.Bind(wx.EVT_MENU, self.CarveFiles, id=ID_MENU_CARVE_FILES)
+		
 		#panels
 		panel = wx.Panel(self)
 		panel.SetBackgroundColour('#4f5049')
@@ -72,19 +78,20 @@ class GUI(wx.Frame):
 
 		grid.AddGrowableCol(1)
 
-		self.overview = wx.ListCtrl(panel, style=wx.LC_REPORT)
+		self.overview = ListWidthCtrl(panel, style=wx.LC_REPORT)
 		self.overview.InsertColumn(0,'No.',width=35)
-		self.overview.InsertColumn(1,'Name',width=263)
+		self.overview.InsertColumn(1,'Name')
 		grid.Add(self.overview, pos=(1, 0), flag=wx.LEFT|wx.EXPAND, border=10)
 
-		self.selection = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.LC_NO_HEADER)
-		self.selection.InsertColumn(0,'Field')
+		self.selection = ListWidthCtrl(panel, style=wx.LC_REPORT|wx.LC_NO_HEADER)
+		self.selection.InsertColumn(0,'Field', width=100)
 		self.selection.InsertColumn(1,'Data')
 		grid.Add(self.selection, pos=(1, 1), flag=wx.RIGHT|wx.EXPAND, border=10)
 		
 		grid.AddGrowableRow(1)
 
-		self.details = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.LC_NO_HEADER)
+		self.details = ListWidthCtrl(panel, style=wx.LC_REPORT|wx.LC_NO_HEADER)
+		self.details.InsertColumn(0,'Details')
 		grid.Add(self.details, pos=(2, 0), span=(1,2), flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.CENTER|wx.EXPAND, border=10)
 
 		grid.AddGrowableRow(2)
@@ -147,9 +154,9 @@ class GUI(wx.Frame):
 
 	def GetDetails(self, e):
 		index = e.m_itemIndex
-		file = self.overview.GetItem(index, 1).GetText()
+		self.file = self.overview.GetItem(index, 1).GetText()
 		db_query = "SELECT * FROM files WHERE name LIKE ?"
-		self.db_info["db_cursor"].execute(db_query, ('%'+file+'%',))
+		self.db_info["db_cursor"].execute(db_query, ('%'+self.file+'%',))
 		self.selection.DeleteAllItems()
 		file = self.db_info["db_cursor"].fetchone()
 		index = self.selection.InsertStringItem(sys.maxint, "Inode:")
@@ -158,6 +165,44 @@ class GUI(wx.Frame):
 		self.selection.SetStringItem(index,1,str(file[3]))
 		index = self.selection.InsertStringItem(sys.maxint, "File Size: ")
 		self.selection.SetStringItem(index,1,str(file[4]/1024.0))
+
+	def CarveFiles(self, e):
+		db_query = "SELECT * FROM files WHERE name LIKE ?"
+		self.db_info["db_cursor"].execute(db_query,('%'+self.file+'%',))
+		tempfile = re.sub("/","-",self.file)
+		new_directory = self.image+"_"+tempfile+"_"+str(carver_common.get_time(self.image))
+		carver_common.make_directory(new_directory)
+		log = open(os.getcwd()+"/"+new_directory+"/log","a")
+		while True:
+			carve = self.db_info["db_cursor"].fetchone()
+			if carve != None:
+				if re.match('.*/', carve[0]):
+					out_file = re.sub('.*/','',carve[0])
+				else:
+					out_file = carve[0]
+				pathless_image = re.sub(".*/","",self.image)
+				icat = "icat -o "+str(carve[3])+" "+self.image+" "+str(carve[1])+" > "+new_directory+"/"+out_file
+				carver_common.ipc_shell(icat)
+				hash = carver_common.hash_file(new_directory+"/"+out_file)
+				index = self.details.InsertStringItem(sys.maxint, "File duplicated to "+os.getcwd()+"/"+new_directory+"/"+out_file)
+				index = self.details.InsertStringItem(sys.maxint, "\t MD5:  "+hash[0])
+				index = self.details.InsertStringItem(sys.maxint, "\t SHA1: "+hash[1]+"\n")
+				try:
+					log.write(out_file+"\n\tMD5:  "+hash[0]+"\n\tSHA1: "+hash[1]+"\n")
+				except OSError:
+					pass
+			else:
+				break
+		log.close()
+		return;
+
+################################################################################
+#Column Size Control
+################################################################################
+class ListWidthCtrl(wx.ListCtrl, listctrl_mixin.ListCtrlAutoWidthMixin):
+	def __init__(self, *args, **kwargs):
+		wx.ListCtrl.__init__(self, *args, **kwargs)
+		listctrl_mixin.ListCtrlAutoWidthMixin.__init__(self)
 
 def main():
 
